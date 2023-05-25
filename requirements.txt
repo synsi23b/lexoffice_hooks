@@ -1,0 +1,4 @@
+typeguard
+flask
+python-dotenv
+requests

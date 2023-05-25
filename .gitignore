@@ -122,3 +122,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+signature_base64
+signature_decoded
+public_key.pub
+request.json
