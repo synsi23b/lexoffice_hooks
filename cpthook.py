@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 from worker import Worker
 from lexoffice import create_subscriptions
+import base64
 
 
 def download_pubkey():
@@ -25,11 +26,9 @@ def verify_sig():
         with open(data, "wb") as f:
             f.write(request.get_data())
         sig = request.headers.get("X-Lxo-Signature", "")
-        sigin = here / "signature_base64"
-        with open(sigin, "w") as f:
-            f.write(sig)
         sigout = here / "signature_decoded"
-        subprocess.call(["openssl", "base64", "-d", "-in", str(sigin), "-out", str(sigout)])
+        with open(sigout, "wb") as f:
+            f.write(base64.b64decode(sig))
         res = subprocess.call(["openssl", "dgst", "-verify", str(here / "public_key.pub"), "-signature", str(sigout), str(data)])
         return res == 0
     return False

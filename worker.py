@@ -56,6 +56,8 @@ class Worker:
                     func(elem)
             except queue.Empty:
                 pass
+            except Exception as e:
+                print(f"Unhandled exption in worker: {type(e)} -> {e}")
         print("Worker runner finished")
     
 

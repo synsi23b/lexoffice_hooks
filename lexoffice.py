@@ -2,6 +2,7 @@ import requests
 from dotenv import load_dotenv
 import os
 from pathlib import Path
+import base64
 
 
 load_dotenv()
@@ -63,12 +64,16 @@ def download_file(resource_id:str):
     response = requests.get(endpoint, headers=base_header)
     if response.status_code < 210:
         cdisp = response.headers["Content-Disposition"]
-        cdisp.split("; ")
-        filename = cdisp[1].replace("filename=", "")
+        cdisp = cdisp.split(";")
+        filename = cdisp[1].replace(" filename=", "")
         datafile = here / "downloads" / filename
         with open(datafile, "wb") as f:
-            f.write(response.content)
+            f.write(base64.b64decode(response.content))
         return datafile
     else:
         print(f"Error fetching file: {response.status_code}")
         return None
+
+
+if __name__ == "__main__":
+    download_file("cc61071e-eb8b-4459-93b3-781748264ce6")
