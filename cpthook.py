@@ -18,7 +18,7 @@ def delete_old_subscriptions():
     }
     response = requests.get(endpoint, headers=headers)
     subs = response.json()
-    print(subs)
+    print(f"current subs callback result: {subs}")
     for sub in subs.get("content", []):
         id = sub["subscriptionId"]
         response = requests.delete(f"{endpoint}/{id}", headers=headers)
@@ -33,13 +33,20 @@ def create_subscriptions():
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     }
-    data = {
-        "eventType": "voucher.created",
-        "callbackUrl": f"https://{os.getenv('callback_base_url')}/lexhook/voucher/created"
-    }
-    response = requests.post(endpoint, headers=headers, json=data)
-    if response.status_code != 201:
-        print(f"error creating event! code {response.status_code}")
+    events = [
+        "voucher.created",
+        #"invoice.created",
+    ]
+    for ev in events:
+        data = {
+            "eventType": ev,
+            "callbackUrl": f"https://{os.getenv('callback_base_url')}/lexhook/voucher/created"
+        }
+        response = requests.post(endpoint, headers=headers, json=data)
+        if response.status_code != 201:
+            print(f"error creating event {ev}! code {response.status_code}")
+        else:
+            print(f"lexoffice event {ev} subscribed")
 
 
 def download_pubkey():
@@ -69,14 +76,12 @@ def verify_sig():
     return False
 
 
-download_pubkey()
-create_subscriptions()
 wrk = Worker()
 app = Flask("lexhooks")
 
 
-@app.route('/lexhook/voucher/created/', methods=['POST'])
-def voucher_created():
+@app.route('/lexhook/voucher/created', methods=['POST', 'HEAD'])
+def lex_cb():
     if verify_sig():
         #return Response(status=200)
         print("Signature verified")
@@ -88,7 +93,11 @@ def voucher_created():
     return Response(status=200)
     
 
+download_pubkey()
+create_subscriptions()
+
 if __name__ == '__main__':
     #download_pubkey()
     #create_subscriptions()
-    app.run(debug=True)
+    app.run(debug=False, host="0.0.0.0")
+    wrk.stop()

@@ -1,4 +1,4 @@
-# 
+# the base url is the domain name where the hook is served, e.g. lex.example.com
 callback_base_url=""
-#
+# 
 lexoffice_apkikey=""
