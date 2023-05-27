@@ -2,3 +2,4 @@ typeguard
 flask
 python-dotenv
 requests
+mindee

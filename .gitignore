@@ -127,3 +127,4 @@ signature_base64
 signature_decoded
 public_key.pub
 request.json
+mindee.json

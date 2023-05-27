@@ -62,10 +62,13 @@ def download_file(resource_id:str):
     endpoint = resourceurl + f"/files/{resource_id}"
     response = requests.get(endpoint, headers=base_header)
     if response.status_code < 210:
-        data = here / "downloads" / resource_id
-        with open(data, "wb") as f:
+        cdisp = response.headers["Content-Disposition"]
+        cdisp.split("; ")
+        filename = cdisp[1].replace("filename=", "")
+        datafile = here / "downloads" / filename
+        with open(datafile, "wb") as f:
             f.write(response.content)
-        return resource_id
+        return datafile
     else:
         print(f"Error fetching file: {response.status_code}")
         return None

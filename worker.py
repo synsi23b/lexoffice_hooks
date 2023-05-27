@@ -1,6 +1,7 @@
 import queue
 from threading import Thread
 from lexoffice import pull_voucher, download_file
+import mindeeclient
 
 
 def voucher_created(event:dict):
@@ -10,6 +11,14 @@ def voucher_created(event:dict):
         files = voucher.get("files",[])
         if files:
             dl = download_file(files[0])
+            parsed = mindeeclient.parse(dl)
+            #dl.unlink()
+            # update voucher with data retrieved from mindee
+            print("### update voucher with data retrieved from mindee ###")
+            print(voucher)
+            print("#" * 10)
+            print(parsed)
+            print("#" * 30)
         else:
             print("Voucher had no files attached")
 
