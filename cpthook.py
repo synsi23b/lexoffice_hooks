@@ -5,48 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 from worker import Worker
-
-
-load_dotenv()
-
-
-def delete_old_subscriptions():
-    endpoint = "https://api.lexoffice.io/v1/event-subscriptions"
-    headers = {
-        'Authorization': f"Bearer {os.getenv('lexoffice_apkikey')}",
-        'Accept': 'application/json',
-    }
-    response = requests.get(endpoint, headers=headers)
-    subs = response.json()
-    print(f"current subs callback result: {subs}")
-    for sub in subs.get("content", []):
-        id = sub["subscriptionId"]
-        response = requests.delete(f"{endpoint}/{id}", headers=headers)
-        print(f"Delete: {sub['eventType']} - {id} -> Code: {response.status_code}")
-
-
-def create_subscriptions():
-    delete_old_subscriptions()
-    endpoint = "https://api.lexoffice.io/v1/event-subscriptions"
-    headers = {
-        'Authorization': f"Bearer {os.getenv('lexoffice_apkikey')}",
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-    }
-    events = [
-        "voucher.created",
-        #"invoice.created",
-    ]
-    for ev in events:
-        data = {
-            "eventType": ev,
-            "callbackUrl": f"https://{os.getenv('callback_base_url')}/lexhook/voucher/created"
-        }
-        response = requests.post(endpoint, headers=headers, json=data)
-        if response.status_code != 201:
-            print(f"error creating event {ev}! code {response.status_code}")
-        else:
-            print(f"lexoffice event {ev} subscribed")
+from lexoffice import create_subscriptions
 
 
 def download_pubkey():
@@ -67,8 +26,8 @@ def verify_sig():
             f.write(request.get_data())
         sig = request.headers.get("X-Lxo-Signature", "")
         sigin = here / "signature_base64"
-        with open(sigin, "wb") as f:
-            f.write(bytes(sig, "utf-8"))
+        with open(sigin, "w") as f:
+            f.write(sig)
         sigout = here / "signature_decoded"
         subprocess.call(["openssl", "base64", "-d", "-in", str(sigin), "-out", str(sigout)])
         res = subprocess.call(["openssl", "dgst", "-verify", str(here / "public_key.pub"), "-signature", str(sigout), str(data)])
@@ -94,7 +53,8 @@ def lex_cb():
     
 
 download_pubkey()
-create_subscriptions()
+create_subscriptions(os.getenv("callback_base_url") + "/lexhook")
+
 
 if __name__ == '__main__':
     #download_pubkey()
