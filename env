@@ -4,3 +4,5 @@ callback_base_url=""
 lexoffice_apkikey=""
 #
 mindee_apikey=""
+#
+openai_key=""

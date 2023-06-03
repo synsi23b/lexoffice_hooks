@@ -2,4 +2,5 @@ typeguard
 flask
 python-dotenv
 requests
-mindee
+openai
+#mindee

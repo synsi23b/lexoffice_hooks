@@ -7,6 +7,25 @@ import subprocess
 from worker import Worker
 from lexoffice import create_subscriptions
 import base64
+from logging.config import dictConfig
+import logging
+
+
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 
 def download_pubkey():
@@ -42,9 +61,9 @@ app = Flask("lexhooks")
 def lex_cb():
     if verify_sig():
         #return Response(status=200)
-        print("Signature verified")
+        logging.info("Signature verified")
     else:
-        print("Error verifing signature of the call")
+        logging.info("Error verifing signature of the call")
         #return Response(status=400)
     jdata = request.get_json()
     wrk.put(jdata)
