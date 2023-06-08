@@ -16,14 +16,23 @@ dictConfig({
     'formatters': {'default': {
         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
     }},
-    'handlers': {'wsgi': {
-        'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
-    }},
+    'handlers': {
+        'wsgi': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://flask.logging.wsgi_errors_stream',
+            'formatter': 'default'
+        },
+        'file_handler': {
+            'level': 'INFO',
+            'formatter': 'default',
+            'class': 'logging.FileHandler',
+            'filename': 'hooking.log',
+            'mode': 'a',
+        },
+    },
     'root': {
         'level': 'INFO',
-        'handlers': ['wsgi']
+        'handlers': ['wsgi', 'file_handler']
     }
 })
 
