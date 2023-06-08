@@ -20,9 +20,13 @@ def voucher_created(event:dict):
             # update voucher with data retrieved from mindee
             logging.info("### update voucher with data retrieved from mindee ###")
             mindeeclient.update_lex_voucher(voucher, parsed)
-            update_voucher(voucher)
+            store_json("upd_voucher", res_id, voucher)
+            res = update_voucher(voucher)
+            return res
         else:
-            logging.info("Voucher had no files attached")
+            logging.error("Voucher had no files attached")
+    else:
+        logging.error("Voucher could not be pulled from lexoffice.")
 
 
 class Worker:
@@ -56,6 +60,7 @@ class Worker:
                 if func:
                     logging.info(f"Running functor {func.__name__}")
                     func(elem)
+                    logging.info(f"Functor {func.__name__} finished")
             except queue.Empty:
                 pass
             except Exception as e:
@@ -67,6 +72,7 @@ if __name__ == "__main__":
     # test voucher cb api
     import json
     s = "{'organizationId': '383b8c13-e9e9-43b1-8830-37ce8c3f3436', 'eventType': 'voucher.created', 'resourceId': '21446eb7-f6f7-45cc-9818-c3d8065bde12', 'eventDate': '2023-05-27T03:55:43.368+02:00'}"
+    s = "{'organizationId': '383b8c13-e9e9-43b1-8830-37ce8c3f3436', 'eventType': 'voucher.created', 'resourceId': 'd2005ab2-5fed-4406-a718-1c46154ae6ac', 'eventDate': '2023-06-08T06:58:35.505+02:00'}"
     s = s.replace("'", "\"")
     d = json.loads(s)
     voucher_created(d)

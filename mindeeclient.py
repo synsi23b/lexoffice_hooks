@@ -46,32 +46,52 @@ def parse(path):
     return json_response
 
 
+def _get_supplier_name(parsed:dict):
+    name = parsed.get("supplier_name", {"value": "Unknown"})
+    regi = parsed.get("supplier_company_registrations", [])
+    if regi:
+        return regi[0]
+    return name["value"]
+
+
+def _minget(parsed, key, default):
+    v = parsed.get(key, {})
+    if type(v) == dict:
+        return v.get("value", default)
+    return v
+
+
 def _create_contact(parsed):
-    name = parsed["supplier_company_registrations"]
-    address = parsed["supplier_address"]
-    pd = parsed["supplier_payment_details"]
+    name = _get_supplier_name(parsed)
+    address = _minget(parsed, "supplier_address", "")
+    pd = _minget(parsed, "supplier_payment_details", None)
     iban, swift, routing = "", "", ""
     if pd:
-        iban = pd["iban"]
-        swift = pd["swift"]
-        routing = pd["routing_number"]
+        iban = pd[0]["iban"]
+        swift = pd[0]["swift"]
+        routing = pd[0]["routing_number"]
     return lexoffice.create_company(name, address, iban, swift, routing)
 
 
 def _noop(inval):
-    return inval["value"]
+    return inval.get("value", None)
 
 
 def _localdtiso(inval):
-    d = datetime.strptime(inval["value"], "%Y-%m-%d")
-    dtz = TZ.localize(d)
-    return dtz.isoformat()
+    s = inval.get("value", None)
+    if s:
+        d = datetime.strptime(s, "%Y-%m-%d")
+        dtz = TZ.localize(d)
+        return dtz.isoformat()
+    return None
 
 
 def _fill_if_exists(lex, lexkey, mindee, mindeekey, exctractor=_noop):
-    if mindee[mindeekey] is not None:
+    if mindee.get(mindeekey, None) is not None:
         logging.info(f"Replacing {lexkey}:{lex[lexkey]} with ")
-        lex[lexkey] = exctractor(mindee[mindeekey])
+        exvalue = exctractor(mindee[mindeekey])
+        if exvalue:
+            lex[lexkey] = exvalue 
 
 
 def update_lex_voucher(lex, mindee):
@@ -80,17 +100,16 @@ def update_lex_voucher(lex, mindee):
     _fill_if_exists(lex, "voucherDate", pred, "date", _localdtiso)
     _fill_if_exists(lex, "dueDate", pred, "due_date", _localdtiso)
     _fill_if_exists(lex, "totalGrossAmount", pred, "total_amount")
-    _fill_if_exists(lex, "totalTaxAmount", pred, "total_tax")
+    #_fill_if_exists(lex, "totalTaxAmount", pred, "total_tax")
     
     lex["useCollectiveContact"] = False
-    contact = lexoffice.pull_contact(lex["contactId"])
+    contact = lexoffice.pull_contact(lex.get("contactId", None))
     if contact:
-        if not lexoffice.compare_contact(contact, mindee["supplier_company_registrations"]):
-            lex["contactId"] = _create_contact(mindee)
+        if not lexoffice.compare_contact(contact, _get_supplier_name(pred)):
+            lex["contactId"] = _create_contact(pred)
     else:
-        lex["contactId"] = _create_contact(mindee)
+        lex["contactId"] = _create_contact(pred)
 
-    
     spending_categories = lexoffice.get_postings_outgo()
     
     vil = []
@@ -112,3 +131,4 @@ def update_lex_voucher(lex, mindee):
             "categoryId": cat["id"]
         })
     lex["voucherItems"] = vil
+    lex["totalTaxAmount"] = sum([v["taxAmount"] for v in vil])

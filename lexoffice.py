@@ -18,10 +18,9 @@ base_header = {
     }
 
 
-def _base_get(resource:str, expected_status:int=0, added_headers:list=[]):
+def _base_get(resource:str, expected_status:int=0, check_content=True ):
     endpoint = resourceurl + resource
     headers = base_header.copy()
-    headers.update(added_headers)
     response = requests.get(endpoint, headers=headers)
     res = {}
     if expected_status != 0:
@@ -31,7 +30,10 @@ def _base_get(resource:str, expected_status:int=0, added_headers:list=[]):
         res = response.json()
     if type(res) == list:
         return res
-    return res.get("content", [])
+    if check_content:
+        return res.get("content", [])
+    else:
+        return res
 
 
 def _base_post(resource:str, data:dict, expected_status:int=0, added_headers:list=[]):
@@ -45,7 +47,22 @@ def _base_post(resource:str, data:dict, expected_status:int=0, added_headers:lis
             return response.json()
     elif response.status_code >= 200 and response.status_code <= 210:
         return response.json()
-    logging.error(f"Maybe bad POST. Status code {response.status_code}")
+    logging.error(f"Maybe bad POST. Status code {response.status_code} Reason: {response.reason} Url: {response.url}")
+    return None
+
+
+def _base_put(resource:str, data:dict, expected_status:int=0, added_headers:list=[]):
+    endpoint = resourceurl + resource
+    headers = base_header.copy()
+    added_headers += [('Content-Type', 'application/json')]
+    headers.update(added_headers)
+    response = requests.put(endpoint, headers=headers, json=data)
+    if expected_status != 0:
+        if response.status_code == expected_status:
+            return response.json()
+    elif response.status_code >= 200 and response.status_code <= 210:
+        return response.json()
+    logging.error(f"Maybe bad PUT. Status code {response.status_code} Reason: {response.reason} Url: {response.url}")
     return None
 
 
@@ -85,11 +102,11 @@ def create_subscriptions(callback_base):
 
 
 def pull_voucher(resource_id:str):
-    return _base_get(f"vouchers/{resource_id}")
+    return _base_get(f"vouchers/{resource_id}", check_content=False)
 
 
 def update_voucher(voucher):
-    return _base_post(f"vouchers/{voucher['id']}", voucher)
+    return _base_put(f"vouchers/{voucher['id']}", voucher)
 
 
 def download_file(resource_id:str):
@@ -109,7 +126,9 @@ def download_file(resource_id:str):
     
 
 def pull_contact(resource_id):
-    return _base_get(f"contacts/{resource_id}")
+    if resource_id:
+        return _base_get(f"contacts/{resource_id}")
+    return None
     
 
 def _find_contact(name):
@@ -146,17 +165,19 @@ def create_company(name, address, iban="", swift="", routing_number=""):
         },
         "company": {
             "name": name
-        },
-        "addresses": {
+        }
+    }
+    if address:
+        data["addresses"] =  {
             "billing": [
                 {
                     "street": address,
                     "countryCode": "DE"
                 }
             ]
-        },
-        "note": f"Iban  {iban}\nSwift {swift}\nVerwZweck {routing_number}"
-    }
+        }
+    if iban:
+        data["note"] = f"Iban  {iban}\nSwift {swift}\nVerwZweck {routing_number}"
     res = _base_post("contacts", data)
     if res:
         return res.get("content", [{"id": None}])[0]["id"]
