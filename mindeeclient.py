@@ -100,7 +100,6 @@ def update_lex_voucher(lex, mindee):
     _fill_if_exists(lex, "voucherDate", pred, "date", _localdtiso)
     _fill_if_exists(lex, "dueDate", pred, "due_date", _localdtiso)
     _fill_if_exists(lex, "totalGrossAmount", pred, "total_amount")
-    #_fill_if_exists(lex, "totalTaxAmount", pred, "total_tax")
     
     lex["useCollectiveContact"] = False
     contact = lexoffice.pull_contact(lex.get("contactId", None))
@@ -131,4 +130,32 @@ def update_lex_voucher(lex, mindee):
             "categoryId": cat["id"]
         })
     lex["voucherItems"] = vil
-    lex["totalTaxAmount"] = sum([v["taxAmount"] for v in vil])
+    if "value" in pred.get("total_tax", {}):
+        _fill_if_exists(lex, "totalTaxAmount", pred, "total_tax")
+    else:
+        lex["totalTaxAmount"] = round(sum([v["taxAmount"] for v in vil], 2))
+
+
+if __name__ == "__main__":
+    dic = {
+    "id": "d2005ab2-5fed-4406-a718-1c46154ae6ac",
+     "organizationId": "383b8c13-e9e9-43b1-8830-37ce8c3f3436",
+      "type": "purchaseinvoice",
+       "voucherStatus": "open", 
+       "voucherNumber": "1995/005", 
+       "voucherDate": "2023-06-08T00:00:00.000+02:00", 
+       "dueDate": "2023-06-08T00:00:00.000+02:00",
+        "totalGrossAmount": 84000.0, 
+        "totalTaxAmount": 13411.76, 
+        "taxType": "gross",
+         "useCollectiveContact": True, 
+         "voucherItems": [
+            {"amount": 84000.0, "taxAmount": 13411.76, "taxRatePercent": 19.0, "categoryId": "aa2d19a0-43e7-4330-a579-75c962254546"}
+            ], 
+            "files": ["db109e15-d78b-4c82-8b25-778e20722bb1"], 
+            "createdDate": "2023-06-08T06:54:58.089+02:00", 
+            "updatedDate": f"{datetime.now().isoformat()}+02:00",  #"2023-06-08T06:58:35.360+02:00", 
+            "version": 5
+    }
+    res = lexoffice.update_voucher(dic)
+    print(res)

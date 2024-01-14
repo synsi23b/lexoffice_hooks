@@ -105,7 +105,7 @@ def pull_voucher(resource_id:str):
     return _base_get(f"vouchers/{resource_id}", check_content=False)
 
 
-def update_voucher(voucher):
+def update_voucher(voucher:dict):
     return _base_put(f"vouchers/{voucher['id']}", voucher)
 
 
